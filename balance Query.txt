@@ -1,0 +1,36 @@
+WITH tempDebitCredit AS (
+	SELECT a.TransactionNumber, a.DebitAmount, a.CreditAmount, a.CreditAmount - a.DebitAmount 'diff'
+	FROM Trans_AccountsD a
+)
+SELECT a.TransactionNumber, a.DebitAmount, a.CreditAmount, SUM(b.diff) 'Balance'
+FROM   tempDebitCredit a,
+       tempDebitCredit b
+WHERE b.TransactionNumber <= a.TransactionNumber
+GROUP BY a.TransactionNumber,a.DebitAmount, a.CreditAmount
+
+
+
+SELECT  TransactionDate,
+        CreditAmount, 
+        DebitAmount, 
+        SUM(isnull(CreditAmount,0) - isnull(DebitAmount,0)) OVER (ORDER BY TransactionNumber ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as Balance
+FROM Trans_AccountsD
+order by TransactionDate
+
+
+WITH CTE AS
+(
+SELECT t2.TransactionDate, 
+       t2.CreditAmount, 
+       t2.DebitAmount, 
+       SUM(COALESCE(t1.CreditAmount, 0) - COALESCE(t1.DebitAmount, 0)) AS Balance
+FROM Trans_AccountsD t1 
+INNER JOIN Trans_AccountsD t2
+    ON t1.TransactionDate <= t2.TransactionDate
+--WHERE t1.DataSource IN(3,4) 
+GROUP BY t2.TransactionDate, t2.CreditAmount, t2.DebitAmount
+)
+SELECT * 
+FROM CTE
+WHERE (TransactionDate >= '2014/01/11' AND TransactionDate <= '2022/02/28' ) 
+order by TransactionDate
